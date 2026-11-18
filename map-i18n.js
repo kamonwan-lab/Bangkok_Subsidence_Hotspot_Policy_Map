@@ -6,7 +6,7 @@
         ["ต่ำ (น้ำเงิน/ฟ้า)", "Low (blue/cyan)"],
         ["สูงสุด (แดง)", "Highest (red)"],
         ["สีเทียบกับกลุ่มจุดที่เข้มที่สุดในมุมมองปัจจุบันและเปลี่ยนตามการซูม • radius 20 px, blur 15 px เป็นค่าภาพ ไม่ใช่ระยะทางจริง", "Colors are relative to the strongest cluster in the current view and change with zoom. Radius 20 px and blur 15 px are display sizes, not real-world distances."],
-        ["คู่มือ ทฤษฎี และการตีความ (Manual & Defense)", "Map guide, theory & interpretation"],
+        ["📘 คู่มือ", "📘 Manual"],
         ["1. คำนิยามตัวแปร:", "1. Variable definitions:"],
         ["ค่าการทรุดตัวสะสมจริง (Calibrated by CUSV GNSS)", "Cumulative subsidence calibrated by CUSV GNSS"],
         ["อิทธิพลที่แบบจำลองใช้อธิบายการทรุดตัว", "Influence of each feature on the model's subsidence estimate"],
