@@ -118,17 +118,44 @@
                     text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;
                 }
                 .mobile-legend { display: none; }
+                .heatmap-legend {
+                    position: fixed; right: 20px; bottom: 150px; width: 265px;
+                    padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+                    background: rgba(255,255,255,0.96); color: #1f2937;
+                    box-shadow: 2px 2px 8px rgba(0,0,0,0.18); z-index: 9998;
+                    font: 11px/1.45 sans-serif;
+                }
+                .heatmap-legend-title { margin-bottom: 5px; font-size: 12px; font-weight: bold; }
+                .heatmap-gradient {
+                    height: 10px; border: 1px solid #64748b; border-radius: 4px;
+                    background: linear-gradient(to right, #0000ff 0%, #00ffff 40%, #00ff00 60%, #ffff00 80%, #ff0000 100%);
+                }
+                .heatmap-gradient-labels { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; font-size: 10px; }
+                .heatmap-legend-note { margin-top: 5px; }
+                .language-switch {
+                    position: fixed; top: 10px; right: 10px; z-index: 10001;
+                    display: flex; gap: 2px; padding: 3px; border: 1px solid #cbd5e1;
+                    border-radius: 18px; background: rgba(255,255,255,0.96);
+                    box-shadow: 2px 2px 6px rgba(0,0,0,0.18); font: bold 11px sans-serif;
+                }
+                .language-switch button {
+                    border: 0; border-radius: 14px; padding: 5px 9px;
+                    background: transparent; color: #334155; cursor: pointer;
+                }
+                .language-switch button[aria-pressed="true"] { background: #2980b9; color: #fff; }
+                .leaflet-top.leaflet-right .legend { margin-top: 44px; }
                 .popup-container { width: 450px; font-family: sans-serif; color:#333; }
                 .flex-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
                 .flex-item { flex: 1; }
 
                 @media (max-width: 768px) {
                     .manual-box { 
+        top: 52px;
         left: 10px; 
         right: 45px; /* ยืดให้เต็มหน้าจอซ้าย-ขวา */
         width: auto;
         max-width: none;
-        max-height: 45vh; /* ในมือถือให้สูงแค่เกือบครึ่งจอพอ จะได้ไม่บัง Legend */
+        max-height: calc(45vh - 52px);
     }
                     .watermark-toggle { bottom: 20px; left: 10px; }
                     .watermark-title-desktop { display: none !important; }
@@ -144,13 +171,18 @@
                     .legend { display: none !important; }
                     .mobile-legend { 
                         display: flex !important; flex-direction: column; align-items: center; justify-content: space-between;
-                        position: fixed; right: 10px; top: 35px; height: 40vh; width: 35px; 
+                        position: fixed; right: 10px; top: 50px; height: 40vh; width: 35px;
                         background: rgba(255,255,255,0.9); border-radius: 5px; border: 1px solid #ccc; z-index: 9999;
                         padding: 10px 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); font-family: sans-serif; font-size: 9px; font-weight: bold; color: #333;
                     }
+                    .heatmap-legend { right: 10px; bottom: 108px; left: 10px; width: auto; padding: 8px 10px; }
                 }
             </style>
             
+            <div class="language-switch" role="group" aria-label="Change language">
+                <button type="button" aria-pressed="true" onclick="setMapLanguage('th')">TH</button>
+                <button type="button" aria-pressed="false" onclick="setMapLanguage('en')">EN</button>
+            </div>
     
             <div class="mobile-legend">
                 <span>>100</span>
@@ -158,6 +190,13 @@
                 <span>0 mm</span>
             </div>
             
+            <div class="heatmap-legend" role="group" aria-label="คำอธิบาย HeatMap">
+                <div class="heatmap-legend-title">🔥 HeatMap: ความเข้มการทรุดตัวสัมพัทธ์</div>
+                <div class="heatmap-gradient" role="img" aria-label="ไล่สีจากน้ำเงินซึ่งมีความเข้มต่ำ ไปแดงซึ่งมีความเข้มสูงสุด"></div>
+                <div class="heatmap-gradient-labels"><span>ต่ำ (น้ำเงิน/ฟ้า)</span><span>สูงสุด (แดง)</span></div>
+                <div class="heatmap-legend-note">สีเทียบกับกลุ่มจุดที่เข้มที่สุดในมุมมองปัจจุบันและเปลี่ยนตามการซูม • radius 20 px, blur 15 px เป็นค่าภาพ ไม่ใช่ระยะทางจริง</div>
+            </div>
+
     
             <div class="custom-panel manual-box">
                 <details>
@@ -185,7 +224,8 @@
                             ●</span> 0-50 มม. (ปลอดภัย) | <span style="color:#d35400;">●</span> <b>51-100 มม. (เฝ้าระวัง)</b> | <span style="color:#c0392b;">●</span> <b>>100 มม. (วิกฤตทางวิศวกรรม)</b><br>
                             (เสี่ยงต่อ Differential Settlement ของท่อประปา - <i>อ้างอิง: เฉลิมพล, 2567</i>)<br><br>
 
-                            🔥 <b>รังสีความร้อน (HeatMap - เกณฑ์สัมพัทธ์):</b> บ่งบอกความรุนแรงเชิงพื้นที่ โดยเทียบสัดส่วน (Normalize) จากค่าสูงสุดในชุดข้อมูล (แดงเข้ม 100%) ช่วยให้มองเห็นระดับความรุนแรงเปรียบเทียบระหว่าง จุดข้อมูล ได้ทันทีด้วยตาเปล่า โดยไม่ต้องกดดูรายละเอียดในสถานี<br><br>
+                            🔥 <b>รังสีความร้อน (HeatMap - เกณฑ์สัมพัทธ์):</b> สีแสดงความเข้มจากค่าน้ำหนักการทรุดของสถานีที่รวมกันในบริเวณใกล้เคียง แล้วเทียบกับกลุ่มที่เข้มที่สุดในพื้นที่และระดับซูมปัจจุบัน (แดง = เข้มที่สุดในมุมมอง ไม่ใช่ 100 มม.) จึงเปลี่ยนได้เมื่อเลื่อนหรือซูมแผนที่<br>
+                            รัศมีแสดงผล radius 20 px และ blur 15 px เป็นขนาดบนหน้าจอ ไม่ใช่ระยะทางจริงเป็นเมตรหรือกิโลเมตร<br><br>
 
                             💡 <b>หมุดสีแดง แต่รังสีเป็นสีฟ้า/เขียว หมายความว่าอย่างไร?:</b><br>
                             หมายถึง สถานีนั้นทรุดตัวจนถึงเกณฑ์อันตรายแล้ว (>100 มม.) แต่ยังไม่ใช่จุดที่ลึกที่สุด และมักเป็นจุดที่ตั้งอยู่โดดเดี่ยว (Local Risk) ไม่ได้ดึงรั้งพื้นที่รอบๆ ให้ทรุดตามเป็นผืนใหญ่เหมือนโซนชานเมืองฝั่งตะวันออก<br>
@@ -273,6 +313,9 @@
             border-radius: 20px; padding: 6px 12px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); 
             display: flex; align-items: center; gap: 8px; font-family: sans-serif; font-size: 11px; font-weight: bold; color: #2c3e50;
         }
+        @media (max-width: 768px) {
+            .label-toggle-container { bottom: 65px; }
+        }
     </style>
 
     <div class="label-toggle-container">
@@ -319,14 +362,14 @@
         
     
             var tile_layer_d76d6eee435062b2f9e60893373b20cd = L.tileLayer(
-                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
-  "maxZoom": 20,
-  "maxNativeZoom": 20,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
   "noWrap": false,
-  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors \u0026copy; \u003ca href=\"https://carto.com/attributions\"\u003eCARTO\u003c/a\u003e",
-  "subdomains": "abcd",
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
   "detectRetina": false,
   "tms": false,
   "opacity": 1,
@@ -402,6 +445,29 @@
         
     
             heat_map_81f492161e69984aba7f5b1910c8b39c.addTo(map_5c3484fc4216cbe395dcb47336b41346);
+
+            fetch("Bangkok_Boundary.geojson")
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error("HTTP " + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function (boundary) {
+                    L.geoJSON(boundary, {
+                        interactive: false,
+                        style: {
+                            color: "#1d4ed8",
+                            weight: 2.5,
+                            opacity: 0.9,
+                            fillColor: "#60a5fa",
+                            fillOpacity: 0.03
+                        }
+                    }).addTo(map_5c3484fc4216cbe395dcb47336b41346);
+                })
+                .catch(function (error) {
+                    console.error("Could not load Bangkok_Boundary.geojson:", error);
+                });
         
     
             var circle_marker_72b5d87ab7ce1030bf863c9981771542 = L.circleMarker(
@@ -1422,4 +1488,5 @@
             ).addTo(map_5c3484fc4216cbe395dcb47336b41346);
         
 </script>
+<script src="map-i18n.js"></script>
 </html>
