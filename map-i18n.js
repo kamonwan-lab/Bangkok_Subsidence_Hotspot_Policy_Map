@@ -43,6 +43,20 @@
         ["6. เอกสารอ้างอิงสำคัญ (Key References):", "6. Key references:"],
         ["5. เอกสารอ้างอิงสำคัญ (Key References):", "5. Key references:"],
         ["6. ความหมายของ Anomaly Tags (Best vs Worst):", "6. Anomaly tags (Best vs Worst):"],
+        ["จุดพิกัด (Point Marker - เกณฑ์ตายตัว):", "Point marker (fixed threshold):"],
+        ["บ่งบอกความเสี่ยงเฉพาะจุด", "indicates risk at each station."],
+        ["เสี่ยงต่อ Differential Settlement ของท่อประปา -", "Potential differential-settlement risk for water pipes -"],
+        ["อ้างอิง: เฉลิมพล, 2567", "Reference: Chalermphon, 2024"],
+        ["สถานีที่ทายคลาดเคลื่อน ชี้ให้เห็นถึงอิทธิพลของ", "A station with a large prediction error, which may indicate the influence of an "],
+        ["ที่อยู่นอกเหนือสมการ", "not represented in the model."],
+        ["เฉลิมพล ทับทิมทอง. (2567). การศึกษาปัญหาการเสียหายของท่อจ่ายน้ำประปาบริเวณส่วนโค้งล่างจากการทรุดตัวที่แตกต่างกัน. มจธ.", "Chalermphon Thapthimthong. (2024). Study of damage to water-distribution pipes at lower bends caused by differential settlement. King Mongkut’s University of Technology Thonburi. (Title translated from Thai.)"],
+        ["มม.", "mm"],
+        ["มิลลิเมตร", "mm"],
+        ["นางสาวกมลวรรณ วงศ์อำมาตย์", "Ms. Kamonwan Wongammat"],
+        ["นายพีรพงศ์ จอมจุมพลภา", "Mr. Peeraphong Jomjumponpa"],
+        ["นางสาวรัตติยา สุขปลั่ง", "Ms. Rattiya Sukplang"],
+        ["ผศ.ดร.ชาญชัย เพชรพงศ์พันธุ์", "Asst. Prof. Chanchai Petpongpan, Ph.D."],
+        ["← กลับมุมมองแผนที่", "← Back to map"],
         ["System Information & Disclaimer:", "ข้อมูลระบบและข้อสงวนสิทธิ์:"],
         ["ⓘ System Information & Disclaimer", "ⓘ ข้อมูลระบบและข้อสงวนสิทธิ์"],
         ["CV MAE:", "MAE เฉลี่ย CV:"],
@@ -127,6 +141,9 @@
                 ? value.split(english).join(thai)
                 : value.split(thai).join(english);
         });
+        value = language === "en"
+            ? value.replace("Disclaimer (Disclaimer):", "Disclaimer:")
+            : value.replace("ข้อสงวนสิทธิ์ (ข้อสงวนสิทธิ์):", "ข้อสงวนสิทธิ์ (Disclaimer):");
         node.nodeValue = value;
     }
 
@@ -159,8 +176,97 @@
         return /^map_/.test(key) && window.L && window[key] instanceof L.Map;
     })[0];
     var mapInstance = mapKey ? window[mapKey] : null;
-    if (mapInstance) mapInstance.on("popupopen", function () {
-        window.setMapLanguage(document.documentElement.lang || "th");
-    });
+    var stationPanel;
+    var savedMapView;
+    var manualWasOpen = false;
+
+    function isDesktop() {
+        return window.matchMedia("(min-width: 769px)").matches;
+    }
+
+    function isStationPopup(popup) {
+        var content = popup && popup.getContent();
+        if (typeof content === "string") return content.indexOf("popup-container") !== -1;
+        if (content && content.jquery) content = content[0];
+        return !!(content && content.querySelector && content.querySelector(".popup-container"));
+    }
+
+    function closeStationPanel() {
+        var view = savedMapView;
+        savedMapView = null;
+        if (stationPanel) {
+            stationPanel.hidden = true;
+            stationPanel.querySelector(".station-detail-content").innerHTML = "";
+        }
+        var manual = document.querySelector(".manual-box");
+        if (manual && manualWasOpen) manual.open = true;
+        manualWasOpen = false;
+        if (view && mapInstance) mapInstance.flyTo(view.center, view.zoom, { duration: 0.6 });
+    }
+
+    function createStationPanel() {
+        if (stationPanel) return stationPanel;
+        var style = document.createElement("style");
+        style.textContent = [
+            ".station-detail-panel { position: fixed; z-index: 10000; top: 76px; bottom: 76px; left: 14px; width: min(460px, 42vw); min-width: 320px; overflow-y: auto; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 12px; background: rgba(255,255,255,0.98); box-shadow: 0 8px 28px rgba(15,23,42,0.28); font: 14px/1.5 sans-serif; color: #1f2937; }",
+            ".station-detail-panel[hidden] { display: none !important; }",
+            ".station-detail-header { position: sticky; top: 0; z-index: 1; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; background: rgba(255,255,255,0.98); }",
+            ".station-detail-back { border: 1px solid #93c5fd; border-radius: 7px; padding: 7px 11px; background: #eff6ff; color: #1d4ed8; font: bold 13px sans-serif; cursor: pointer; }",
+            ".station-detail-back:hover { background: #dbeafe; }",
+            ".station-detail-content { padding: 12px; }",
+            ".station-detail-panel .popup-container { width: auto !important; font: 14px/1.5 sans-serif !important; }",
+            ".station-detail-panel .popup-container small, .station-detail-panel .popup-container span { font-size: 13px !important; }",
+            ".station-detail-panel .popup-container span[style*='border-radius:3px'] { font-size: 11px !important; }",
+            ".station-detail-panel .popup-container .flex-item > div { font-size: 13px !important; }",
+            ".station-detail-panel .popup-container .flex-item small { font-size: 13px !important; }",
+            ".station-detail-panel .popup-container b[style*='font-size:16px'] { font-size: 20px !important; }",
+            ".station-detail-panel .popup-container > div > b[style*='font-size:14px'] { font-size: 18px !important; }",
+            ".station-detail-panel .popup-container table, .station-detail-panel .popup-container td, .station-detail-panel .popup-container summary { font-size: 13px !important; }",
+            "@media (max-width: 768px) { .station-detail-panel { display: none !important; } }"
+        ].join("");
+        document.head.appendChild(style);
+        stationPanel = document.createElement("aside");
+        stationPanel.id = "station-detail-panel";
+        stationPanel.className = "station-detail-panel";
+        stationPanel.setAttribute("role", "dialog");
+        stationPanel.hidden = true;
+        stationPanel.innerHTML = "<div class=\"station-detail-header\"><button class=\"station-detail-back\" type=\"button\">← กลับมุมมองแผนที่</button></div><div class=\"station-detail-content\"></div>";
+        stationPanel.querySelector(".station-detail-back").addEventListener("click", closeStationPanel);
+        document.body.appendChild(stationPanel);
+        return stationPanel;
+    }
+
+    if (mapInstance) {
+        mapInstance.eachLayer(function (layer) {
+            if (layer instanceof L.CircleMarker && layer.getPopup && isStationPopup(layer.getPopup())) {
+                layer.on("preclick", function () {
+                    if (isDesktop() && stationPanel && !stationPanel.hidden) return;
+                    if (isDesktop() && !savedMapView) {
+                        savedMapView = { center: mapInstance.getCenter(), zoom: mapInstance.getZoom() };
+                    }
+                });
+            }
+        });
+        mapInstance.on("popupopen", function (event) {
+            window.setMapLanguage(document.documentElement.lang || "th");
+            if (!isDesktop() || !isStationPopup(event.popup)) return;
+            var popupElement = event.popup.getElement();
+            var popupContent = popupElement && popupElement.querySelector(".leaflet-popup-content .popup-container");
+            if (!popupContent) return;
+            if (!savedMapView) savedMapView = { center: mapInstance.getCenter(), zoom: mapInstance.getZoom() };
+            var manual = document.querySelector(".manual-box");
+            if (manual && manual.open) {
+                manualWasOpen = true;
+                manual.open = false;
+            }
+            var panel = createStationPanel();
+            panel.querySelector(".station-detail-content").replaceChildren(popupContent.cloneNode(true));
+            panel.hidden = false;
+            panel.setAttribute("aria-label", document.documentElement.lang === "en" ? "Station details" : "ข้อมูลสถานี");
+            window.setMapLanguage(document.documentElement.lang || "th");
+            mapInstance.closePopup(event.popup);
+            mapInstance.flyTo(event.popup.getLatLng(), Math.max(13, mapInstance.getZoom()), { duration: 0.6 });
+        });
+    }
     window.setMapLanguage("th");
 }());
