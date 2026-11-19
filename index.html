@@ -158,6 +158,9 @@
                 }
                 .heatmap-gradient-labels { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; font-size: 10px; }
                 .heatmap-legend-note { margin-top: 5px; }
+                .district-boundary-key { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 10px; }
+                .district-boundary-swatch { position: relative; display: inline-block; flex: 0 0 24px; height: 10px; box-sizing: border-box; border: 1px dashed #1d4ed8; background: rgba(100,116,139,0.4); }
+                .district-boundary-swatch::after { content: ""; position: absolute; left: -1px; right: -1px; top: 3px; border-top: 3px solid #1d4ed8; }
                 .language-switch {
                     position: fixed; top: 10px; right: 10px; z-index: 10001;
                     display: flex; gap: 2px; padding: 3px; border: 1px solid #cbd5e1;
@@ -223,6 +226,7 @@
                 <div class="heatmap-gradient" role="img" aria-label="ไล่สีจากน้ำเงินซึ่งมีความเข้มต่ำ ไปแดงซึ่งมีความเข้มสูงสุด"></div>
                 <div class="heatmap-gradient-labels"><span>ต่ำ (น้ำเงิน/ฟ้า)</span><span>สูงสุด (แดง)</span></div>
                 <div class="heatmap-legend-note">สีเทียบกับกลุ่มจุดที่เข้มที่สุดในมุมมองปัจจุบันและเปลี่ยนตามการซูม • radius 20 px, blur 15 px เป็นค่าภาพ ไม่ใช่ระยะทางจริง</div>
+                <div class="district-boundary-key"><span class="district-boundary-swatch"></span><span>พื้นที่เทาโปร่งแสง เส้นประแบ่ง 50 เขต และเส้นทึบหนาแสดงขอบนอก กทม.</span></div>
             </div>
 
     
@@ -489,27 +493,44 @@
     
             heat_map_81f492161e69984aba7f5b1910c8b39c.addTo(map_5c3484fc4216cbe395dcb47336b41346);
 
-            fetch("Bangkok_Boundary.geojson")
+            fetch("Bangkok_District_Boundaries.geojson")
                 .then(function (response) {
                     if (!response.ok) {
                         throw new Error("HTTP " + response.status);
                     }
                     return response.json();
                 })
-                .then(function (boundary) {
-                    L.geoJSON(boundary, {
+                .then(function (districts) {
+                    var districtLayer = L.geoJSON(districts, {
                         interactive: false,
-                        style: {
-                            color: "#1d4ed8",
-                            weight: 2.5,
-                            opacity: 0.9,
-                            fillColor: "#60a5fa",
-                            fillOpacity: 0.03
+                        style: function (feature) {
+                            if (feature.properties && feature.properties.boundary_type === "outer") {
+                                return {
+                                    color: "#1d4ed8",
+                                    weight: 3.5,
+                                    opacity: 1,
+                                    fill: false
+                                };
+                            }
+                            return {
+                                color: "#1d4ed8",
+                                weight: 1.2,
+                                dashArray: "4 4",
+                                opacity: 0.85,
+                                fill: true,
+                                fillColor: "#64748b",
+                                fillOpacity: 0.4
+                            };
                         }
                     }).addTo(map_5c3484fc4216cbe395dcb47336b41346);
+                    districtLayer.eachLayer(function (layer) {
+                        if (typeof layer.bringToBack === "function") {
+                            layer.bringToBack();
+                        }
+                    });
                 })
                 .catch(function (error) {
-                    console.error("Could not load Bangkok_Boundary.geojson:", error);
+                    console.error("Could not load Bangkok_District_Boundaries.geojson:", error);
                 });
         
     
